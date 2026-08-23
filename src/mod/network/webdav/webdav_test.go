@@ -53,7 +53,12 @@ func TestPrefix(t *testing.T) {
 			return nil, err
 		}
 		defer res.Body.Close()
-		if res.StatusCode != wantStatusCode {
+		// Go 1.26 changed ServeMux's canonical-path redirect for non-GET
+		// requests from 301 to 307 so clients preserve the request method.
+		// Both statuses prove the prefix routing behavior this test covers.
+		redirectCompatible := wantStatusCode == http.StatusMovedPermanently &&
+			res.StatusCode == http.StatusTemporaryRedirect
+		if res.StatusCode != wantStatusCode && !redirectCompatible {
 			return nil, fmt.Errorf("got status code %d, want %d", res.StatusCode, wantStatusCode)
 		}
 		return res.Header, nil
